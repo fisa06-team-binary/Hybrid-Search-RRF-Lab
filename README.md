@@ -1,5 +1,12 @@
 # 🎯 [Project] 금융 고객 타겟팅을 위한 하이브리드 검색 아키텍처 최적화 (RRF 도입)
 
+
+**Tech Stack**
+![Python](https://img.shields.io/badge/Python-3.9%2B-blue)
+![Pandas](https://img.shields.io/badge/Pandas-Data%20Processing-purple)
+![SentenceTransformers](https://img.shields.io/badge/SentenceTransformers-MiniLM-yellow)
+![rank_bm25](https://img.shields.io/badge/rank__bm25-BM25%20Algorithm-lightgray)
+
 ## 📖 1. 프로젝트 개요 (Overview)
 
 금융 및 커머스 도메인의 추천 시스템은 두 가지 핵심 과제를 동시에 해결해야 합니다.
@@ -71,4 +78,4 @@
 
 ---
 
-**Tech Stack**: Python, Pandas, SentenceTransformers, rank_bm25
+
