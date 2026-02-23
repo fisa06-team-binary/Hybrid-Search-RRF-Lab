@@ -105,10 +105,19 @@ def run_rrf_experiment(query_text, query_sido='서울', query_age_min=30, query_
     # Retriever 2: BM25 단독
     # -------------------------------------------------
     start_bm25 = time.time()
-    bm25_query_str = f"{query_sido} {query_age_min}대 요식업" 
+
+    bm25_query_str = f"{query_text} 음식 식사 외식 식당 음식점 배달"
     df['bm25_score'] = bm25.get_scores(preprocess_text(bm25_query_str))
-    bm25_result = df[df['bm25_score'] > 0].sort_values(by=['bm25_score', 'RESTRNT_AM'], ascending=[False, False]).head(1000).copy().reset_index(drop=True)
+
+    # ✅ 0점이어도 상위 1000개는 뽑아서 실험이 안 죽게 만들기
+    bm25_result = (
+        df.sort_values(by=['bm25_score', 'RESTRNT_AM'], ascending=[False, False])
+        .head(1000)
+        .copy()
+        .reset_index(drop=True)
+    )
     bm25_result['keyword_rank'] = bm25_result.index + 1
+
     end_bm25 = time.time()
 
     # -------------------------------------------------
@@ -138,7 +147,7 @@ def run_rrf_experiment(query_text, query_sido='서울', query_age_min=30, query_
     fusion_base = pd.merge(
         filtered_bm25[['SEQ', 'bm25_score', 'bm25_norm', 'keyword_rank']],
         filtered_dense[['SEQ', 'similarity_score', 'dense_norm', 'vector_rank']],
-        on='SEQ', how='inner'
+        on='SEQ', how='outer'
     )
     
     fusion_base['weighted_score'] = (0.5 * fusion_base['bm25_norm']) + (0.5 * fusion_base['dense_norm'])
@@ -216,5 +225,57 @@ def run_rrf_experiment(query_text, query_sido='서울', query_age_min=30, query_
         print("교집합 결과 없음")
     print("="*80)
 
+
+    # -------------------------------------------------
+    # [추가] 동일 후보집합(fusion_base)에서 정렬 방식만 바꿔 비교
+    # -------------------------------------------------
+    base = fusion_base.copy()
+
+    # (Score Fusion용) base 내부에서만 정규화 다시 계산 (후보 고정이 목적)
+    # bm25_norm / dense_norm이 이미 있어도, "후보집합 안에서" 다시 만들면 더 깨끗함
+    max_bm25, min_bm25 = base['bm25_score'].max(), base['bm25_score'].min()
+    if max_bm25 != min_bm25:
+        base['bm25_norm2'] = (base['bm25_score'] - min_bm25) / (max_bm25 - min_bm25)
+    else:
+        base['bm25_norm2'] = 0.0
+
+    max_dense, min_dense = base['similarity_score'].max(), base['similarity_score'].min()
+    if max_dense != min_dense:
+        base['dense_norm2'] = (base['similarity_score'] - min_dense) / (max_dense - min_dense)
+    else:
+        base['dense_norm2'] = 0.0
+
+    base['weighted_score2'] = 0.5 * base['bm25_norm2'] + 0.5 * base['dense_norm2']
+    base['rrf_score2'] = base.apply(lambda x: calculate_rrf(x['keyword_rank'], x['vector_rank']), axis=1)
+
+    # 후보 고정 상태에서 "정렬만" 다르게 한 결과 SEQ 리스트
+    seq_dense_rank_only = base.sort_values('vector_rank', ascending=True)['SEQ'].tolist()
+    seq_bm25_rank_only  = base.sort_values('keyword_rank', ascending=True)['SEQ'].tolist()
+    seq_score_fusion    = base.sort_values('weighted_score2', ascending=False)['SEQ'].tolist()
+    seq_rrf             = base.sort_values('rrf_score2', ascending=False)['SEQ'].tolist()
+
+    print("\n[4-추가. 후보 고정(교집합) 상태에서 정렬 방식만 비교: Recall/Hit]")
+    print(f" * 동일 후보 집합 크기(fusion_base): {len(base)}")
+
+    for name, seqs in [
+        ("Dense rank only", seq_dense_rank_only),
+        ("BM25 rank only",  seq_bm25_rank_only),
+        ("Score Fusion",    seq_score_fusion),
+        ("RRF",             seq_rrf),
+    ]:
+        recall, hit = calc_recall_hit_at_k(seqs, gt_seqs, k=k)
+        print(f" - {name:15} | Recall@{k}: {recall:.4f} | Hit@{k}: {hit}")
+
 # 실행 (K=10 기준)
-run_rrf_experiment("외식 소비가 많은 고객", query_sido='서울', query_age_min=30, query_age_max=39, k=10)
+# run_rrf_experiment("외식 소비가 많은 고객", query_sido='서울', query_age_min=30, query_age_max=39, k=10)
+
+queries = [
+    "외식 소비가 많은 고객",
+    "밥 사먹는 데 돈을 많이 쓰는 고객",
+    "끼니를 밖에서 자주 해결하는 고객",
+    "식비 지출이 큰 고객",
+    "식당 결제가 잦은 고객",
+]
+
+for q in queries:
+    run_rrf_experiment(q, query_sido='서울', query_age_min=30, query_age_max=39, k=10)
