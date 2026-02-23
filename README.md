@@ -2,7 +2,7 @@
 
 
 **Tech Stack**
-![Python](https://img.shields.io/badge/Python-3.9%2B-blue)
+![Python](https://img.shields.io/badge/Python-3.11%2B-blue)
 ![Pandas](https://img.shields.io/badge/Pandas-Data%20Processing-purple)
 ![SentenceTransformers](https://img.shields.io/badge/SentenceTransformers-MiniLM-yellow)
 ![rank_bm25](https://img.shields.io/badge/rank__bm25-BM25%20Algorithm-lightgray)
@@ -70,12 +70,24 @@
 * **해결**: 정규화의 함정을 피하기 위해 점수 스케일과 완전히 독립적인 **RRF(순위 기반 융합)** 를 도입하여 특정 모델에 랭킹이 지배당하는 현상(Model Bias)을 원천 차단했습니다.
 
 ---
+### 🚀 5. 실행 방법 (How to Run)
 
-## 💡 5. 비즈니스 인사이트 및 결론
+```
+# 가상환경 생성 및 활성화 (Windows 기준)
+python -m venv venv
+.\venv\Scripts\activate
+
+# 의존성 패키지 설치
+pip install -r requirments.txt
+```
+
+
+## 💡 6. 비즈니스 인사이트 및 결론
 
 **"정렬도 구조다 (Ranking is Structural)"**
 단순히 최신 AI(Dense)를 도입하거나 가중치를 튜닝하는 것만으로는 훌륭한 검색 시스템을 만들 수 없습니다. AI의 유연함, 전통적 키워드 검색의 명확함, 그리고 비즈니스 룰을 강제하는 SQL의 견고함이 **RRF**라는 구조적 틀 안에서 결합될 때 가장 신뢰할 수 있는 시스템이 완성됨을 실증 데이터로 증명했습니다.
 
 ---
+
 
 
